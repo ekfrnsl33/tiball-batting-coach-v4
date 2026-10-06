@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block step %}결과 확인{% endblock %}
+
+{% macro badge(grade) -%}
+  {%- if grade == '완벽' -%}<span class="badge b-good">완벽</span>
+  {%- elif grade == '좋음' -%}<span class="badge b-mid">좋음</span>
+  {%- else -%}<span class="badge b-retry">다시 연습</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% block content %}
+<div class="card">
+  <label for="studentSelect">학생 선택</label>
+  <select id="studentSelect"
+          onchange="location.href='{{ url_for('result') }}?student=' + this.value">
+    {% for code in students.keys() %}
+    <option value="{{ code }}" {% if code == selected_student %}selected{% endif %}>
+      {{ code }} — {{ students[code].level }}단계
+      (완벽 {{ students[code].perfect_count }} / 좋음 {{ students[code].good_count }} / 다시연습 {{ students[code].retry_count }})
+    </option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="row">
+
+  <div class="grow">
+    {% if data %}
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        {{ badge(data.grade) }}
+        <div class="big" style="text-align:left; font-size:20px; flex:1;">
+          {{ data.feedback }}
+        </div>
+        <div style="text-align:right;">
+          <div class="hint" style="margin:0;">이번 세션 점수</div>
+          <div class="angle score-pop" style="color:var(--accent);">{{ data.total_score }}점</div>
+        </div>
+      </div>
+      {% if data.from_history %}
+      <p class="hint">저장된 기록에서 불러온 결과입니다 ({{ data.timestamp }}).</p>
+      {% endif %}
+      {% if data.event %}
+      <p class="big" style="color:var(--good); font-size:18px; margin-top:8px;">
+        ★ {{ data.event }}!
+      </p>
+      {% endif %}
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <a class="ghost" style="flex:1; text-align:center;"
+           href="{{ url_for('prepare', student=data.student, side=data.side) }}">
+          {{ data.student }} 다시 촬영
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>내 자세</h2>
+      <img class="view"
+           src="{% if data.image_path %}{{ url_for('media', relpath=data.image_path) }}{% else %}{{ url_for('result_jpg') }}{% endif %}"
+           alt="">
+      <p class="privacy">
+        개인정보: 이 화면은 이 컴퓨터에서만 열립니다(127.0.0.1). 영상이 네트워크나 클라우드로 전송되지 않으며, 기록에는 각도·판정 수치와 연구용 코드만 남습니다. 촬영 자료는 연구 종료 후 삭제합니다.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>다음엔 이렇게 해볼까요?</h2>
+      {% set tips = data.results | selectattr('grade', 'ne', '완벽') | list %}
+      {% if tips %}
+      <div class="row">
+        {% for r in tips %}
+        <div class="grow card" style="margin:0; background:#fafbfc;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <b>{{ r.label }}</b> {{ badge(r.grade) }}
+          </div>
+          <p style="font-size:17px; margin:10px 0 0;">{{ r.phrase }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="status s-ok">두 관절 모두 완벽해요! 지금 자세를 그대로 기억해 두세요.</p>
+      {% endif %}
+    </div>
+
+    <details class="card">
+      <summary style="font-size:15px; cursor:pointer;">
+        자세히 보기 (지도 교사용 — 실측 수치)
+      </summary>
+      <div style="margin-top:16px;">
+        <div class="row">
+          {% for r in data.results %}
+          <div class="grow card" style="margin:0; background:#fafbfc;">
+            <div style="display:flex; justify-content:space-between;
+                        align-items:center;">
+              <b>{{ r.label }}</b> {{ badge(r.grade) }}
+            </div>
+            <div class="angle num">{{ r.angle }}°</div>
+            <table style="margin-top:8px">
+              <tr><th>기준각</th><td class="num">{{ r.theta }}°</td></tr>
+              <tr><th>차이</th><td class="num">{{ r.error }}°</td></tr>
+              <tr><th>완벽 기준</th><td class="num">±{{ r.alpha }}°</td></tr>
+              <tr><th>좋음 기준</th><td class="num">±{{ r.beta }}°</td></tr>
+              {% if r.uncertainty %}
+              <tr><th>측정 불확실성</th>
+                  <td class="num">±{{ r.uncertainty }}°</td></tr>
+              {% endif %}
+            </table>
+
+            <p class="hint" style="margin:12px 0 4px;">스윙별 개별 판정</p>
+            <table>
+              <tr><th>회차</th><th>각도</th><th>등급</th><th>점수</th></tr>
+              {% for sw in data.swing_detail.get(r.joint, []) %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td class="num">{{ sw.angle }}°</td>
+                <td>{{ badge(sw.grade) }}</td>
+                <td class="num">{{ sw.score }}점</td>
+              </tr>
+              {% endfor %}
+            </table>
+          </div>
+          {% endfor %}
+        </div>
+
+        <p class="hint" style="margin-top:14px;">
+          측정값은 스윙 {{ data.swings_used }}번의 중앙값입니다.
+          불확실성이 '완벽 기준'보다 크면 그 등급은 참고로만 보세요.
+          점수는 등급을 그대로 숫자로 바꾼 추가 표시일 뿐, 레벨업 승급·강등
+          판단과 공식 세션 등급은 항상 3회 중앙값 기준으로 정해집니다.
+        </p>
+        {% if data.tee_height_cm %}
+        <p class="hint">티 높이: {{ data.tee_height_cm }} cm</p>
+        {% endif %}
+
+        <h2 style="margin-top:20px;">개인별 베이스라인 대비 변화</h2>
+        {% if data.baseline %}
+        <ul class="hint" style="margin-top:0; padding-left:18px;">
+          {% for b in data.baseline %}
+          <li>
+            {{ b.label }}: 첫 촬영 대비 {{ b.delta }}° 더 {{ b.direction }}
+            ({{ '기준각 방향으로 가까워짐' if b.closer else '기준각에서 멀어짐' }})
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="hint">이번이 첫 기록이에요. 다음부터 변화를 보여드릴게요.</p>
+        {% endif %}
+      </div>
+    </details>
+    {% else %}
+    <div class="card">
+      <h2>{{ selected_student }} 학생의 기록이 아직 없습니다</h2>
+      <p class="hint">
+        '촬영 준비' 메뉴에서 이 학생으로 스윙을 촬영하면 여기에 결과가
+        나타납니다. 위에서 다른 학생을 선택할 수도 있어요.
+      </p>
+      <a class="ghost" href="{{ url_for('prepare', student=selected_student) }}">
+        {{ selected_student }} 촬영하러 가기
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="grow" style="flex: 0 0 340px;">
+    <div class="card">
+      <h2>{{ selected_student }} 학생</h2>
+      <p>
+        <span class="level-pill">{{ state.level }}단계</span>
+        <span class="hint">허용오차 ×{{ multiplier }}</span>
+      </p>
+      <table>
+        <tr><th>완벽 누적</th><td class="num">{{ state.perfect_count }}회</td></tr>
+        <tr><th>좋음 누적</th><td class="num">{{ state.good_count }}회</td></tr>
+        <tr><th>다시연습 누적</th><td class="num">{{ state.retry_count }}회</td></tr>
+        {% if state.level < max_level %}
+        <tr><th>다음 단계까지</th>
+            <td class="num">완벽 {{ remaining }}회</td></tr>
+        {% else %}
+        <tr><th>단계</th><td>최고 단계입니다</td></tr>
+        {% endif %}
+      </table>
+      <p class="hint">이번 단계에서 적용된 기준</p>
+      <table>
+        {% for label, alpha, beta in tolerance_rows %}
+        <tr><th>{{ label }}</th>
+            <td class="num">완벽 ±{{ alpha }}° / 좋음 ±{{ beta }}°</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>최근 판정 이력</h2>
+      {% if recent %}
+      <table>
+        <tr><th>일시</th><th>등급</th><th>팔꿈치</th><th>뒷무릎</th><th>점수</th></tr>
+        {% for item in recent %}
+        <tr class="hist-row {{ 'active' if data and item.timestamp == data.timestamp else '' }}"
+            onclick="location.href='{{ url_for('result', student=selected_student, at=item.timestamp) }}'">
+          <td>{{ item.timestamp[5:16] }}</td>
+          <td>{{ item.session_grade }}</td>
+          <td class="num">{{ item.elbow_angle or '-' }}</td>
+          <td class="num">{{ item.knee_angle or '-' }}</td>
+          <td class="num">{{ item.session_total_score or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      <p class="hint">행을 누르면 그 회차의 결과를 다시 볼 수 있어요.</p>
+      {% else %}
+      <p class="hint">아직 기록이 없습니다.</p>
+      {% endif %}
+    </div>
+
+    <div class="card" style="border-color:#d9682f; background:#fdf1ea;">
+      <h2 style="color:#d9682f; font-size:15px;">관리자 전용</h2>
+      <p class="hint">
+        개발·테스트 단계에서 쌓인 기록을 정리할 때만 쓰세요. 실제 연구
+        데이터에는 사용하지 마세요. 누르면 확인 절차(문구 입력 + 팝업
+        확인)를 한 번 더 거칩니다.
+      </p>
+      <a class="ghost" style="display:block; text-align:center;
+                              border-color:#d9682f; color:#d9682f;"
+         href="{{ url_for('admin_delete_all') }}">
+        v3 전체 기록 삭제
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

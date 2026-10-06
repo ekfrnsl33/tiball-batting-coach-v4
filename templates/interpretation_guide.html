@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block step %}결과 해석 방법{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>점수는 이렇게 매겨져요</h2>
+  <p>스윙을 한 번 할 때마다, 팔꿈치와 뒷무릎 <b>각각</b> 등급을 매기고
+    점수를 줍니다.</p>
+  <table>
+    <tr><th>등급</th><th>의미</th><th>점수</th></tr>
+    <tr><td><span class="badge b-retry">다시 연습</span></td>
+        <td>기준 자세와 차이가 커요. 한 번 더 해봐요.</td>
+        <td class="num">10점</td></tr>
+    <tr><td><span class="badge b-mid">좋음</span></td>
+        <td>기준 자세에 꽤 가까워요.</td>
+        <td class="num">30점</td></tr>
+    <tr><td><span class="badge b-good">완벽</span></td>
+        <td>기준 자세와 거의 똑같아요!</td>
+        <td class="num">50점</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h2>세션 총점은 어떻게 더해지나요?</h2>
+  <p>한 번의 촬영(세션)에서는 스윙을 3번 합니다. 팔꿈치와 뒷무릎, 두 곳을
+    3번씩 재니까 점수도 6번 더해집니다.</p>
+  <p style="font-size:17px;">
+    <b>세션 총점 = (팔꿈치 3번 점수 합) + (뒷무릎 3번 점수 합)</b>
+  </p>
+  <table>
+    <tr><th>상황</th><th>총점</th></tr>
+    <tr><td>여섯 번 모두 '다시 연습'</td><td class="num">60점</td></tr>
+    <tr><td>여섯 번 모두 '완벽'</td><td class="num">300점</td></tr>
+  </table>
+  <p class="hint">점수가 높을수록 그날 스윙에서 기준 자세에 가까운 동작이
+    많았다는 뜻입니다. 다음 세션에서 점수가 더 올라가는 걸 목표로
+    삼아보세요.</p>
+</div>
+
+<div class="card">
+  <h2>결과 화면에서 무엇을 보면 되나요?</h2>
+  <ul>
+    <li><b>맨 위 등급과 점수</b> — 오늘 스윙이 전체적으로 어땠는지 한눈에
+      보여줍니다.</li>
+    <li><b>"다음엔 이렇게 해볼까요?"</b> — 어느 부분을 더 신경 쓰면
+      좋아질지 말로 알려줍니다.</li>
+    <li><b>"자세히 보기"</b> — 스윙마다 각도와 점수, 지난번 기록과
+      비교한 변화까지 자세히 볼 수 있습니다 (선생님과 함께 볼 때 유용해요).</li>
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}티볼 타격 코치{% endblock %}</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --line: #dde3ea;
+    --text: #1f2933;
+    --muted: #6b7785;
+    --good: #0e9f4f;
+    --mid: #d97706;
+    --retry: #dc2626;
+    --accent: #2f6fd0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Apple SD Gothic Neo", sans-serif;
+    line-height: 1.5;
+  }
+  .shell { display: flex; min-height: 100vh; }
+  .sidenav {
+    flex: 0 0 176px; background: var(--card);
+    border-right: 1px solid var(--line); padding: 18px 0;
+  }
+  .sidenav .brand {
+    font-size: 16px; font-weight: 700; padding: 0 20px 16px;
+  }
+  .sidenav a {
+    display: block; padding: 18px 20px; color: var(--text);
+    text-decoration: none; font-size: 16px; border-right: 3px solid transparent;
+  }
+  .sidenav a.active {
+    background: #eef4fd; color: var(--accent); font-weight: 600;
+    border-right-color: var(--accent);
+  }
+  .page { flex: 1; min-width: 0; }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--line);
+    padding: 14px 24px; display: flex; align-items: baseline; gap: 14px;
+  }
+  header h1 { font-size: 20px; margin: 0; }
+  header .step { color: var(--muted); font-size: 15px; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 20px; margin-bottom: 18px;
+  }
+  .card h2 { margin: 0 0 14px; font-size: 17px; }
+  .row { display: flex; gap: 18px; align-items: flex-start; }
+  .row > * { min-width: 0; }
+  .grow { flex: 1; }
+  label { display: block; font-size: 14px; color: var(--muted);
+          margin-bottom: 6px; }
+  select, input[type="text"] {
+    width: 100%; padding: 12px; font-size: 17px; border-radius: 8px;
+    border: 1px solid var(--line); background: #fff;
+  }
+  summary { color: var(--muted); font-size: 13px; cursor: pointer; }
+  .err { color: var(--retry); font-size: 13px; }
+  .side-group { display: flex; gap: 10px; }
+  .side-group button {
+    flex: 1; padding: 18px; font-size: 19px; min-height: 56px;
+    border-radius: 10px; border: 2px solid var(--line); background: #fff;
+    cursor: pointer;
+  }
+  .side-group button.on { border-color: var(--accent); color: var(--accent);
+                          font-weight: 600; background: #eef4fd; }
+  .start {
+    width: 100%; padding: 22px; font-size: 22px; font-weight: 600;
+    min-height: 64px; border: none; border-radius: 12px;
+    background: var(--accent); color: #fff; cursor: pointer; margin-top: 4px;
+  }
+  .start:disabled { background: #b6c2d1; cursor: not-allowed; }
+  .ghost {
+    display: inline-block; padding: 16px 26px; font-size: 18px;
+    min-height: 52px; line-height: 20px;
+    border: 1px solid var(--line); border-radius: 10px; background: #fff;
+    color: var(--text); text-decoration: none;
+  }
+  img.view { width: 100%; border-radius: 10px; display: block;
+             background: #16191d; }
+  .badge {
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
+    font-weight: 600; font-size: 15px; color: #fff;
+  }
+  .b-good { background: var(--good); }
+  .b-mid { background: var(--mid); }
+  .b-retry { background: var(--retry); }
+  .status { font-size: 17px; font-weight: 600; }
+  .s-ok { color: var(--good); }
+  .s-warn { color: var(--mid); }
+  .joints { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .joints span {
+    font-size: 13px; padding: 4px 10px; border-radius: 6px;
+    background: #eef1f5; color: var(--muted);
+  }
+  .joints span.bad { background: #fdecea; color: var(--retry); }
+  .joints span.warn { background: #fdf4e3; color: var(--mid); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px;
+           border-bottom: 1px solid var(--line); }
+  tr.hist-row { cursor: pointer; }
+  tr.hist-row:hover { background: #f3f6fa; }
+  tr.hist-row.active { background: #eef4fd; font-weight: 600; }
+  th { color: var(--muted); font-weight: 500; }
+  .num { font-variant-numeric: tabular-nums; }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .countdown { font-size: 140px; font-weight: 700; text-align: center;
+               line-height: 1; margin: 10px 0; font-variant-numeric: tabular-nums; }
+  .big { font-size: 26px; font-weight: 700; text-align: center; }
+  .privacy { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .angle { font-size: 30px; font-weight: 700; }
+  .level-pill {
+    display: inline-block; padding: 4px 12px; border-radius: 999px;
+    background: #eef4fd; color: var(--accent); font-weight: 600;
+  }
+  /* v4 요청 3번: 결과 화면 점수 등장 애니메이션 (과하지 않게 한 번만) */
+  @keyframes scorePop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    60%  { transform: scale(1.18); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .score-pop { display: inline-block; animation: scorePop 0.5s ease-out; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="sidenav">
+    <div class="brand">티볼 타격 코치</div>
+    {% for endpoint, label in nav_items %}
+    <a href="{{ url_for(endpoint) }}"
+       class="{{ 'active' if active_menu == endpoint else '' }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <div class="page">
+    <header>
+      <span class="step">{% block step %}{% endblock %}</span>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+  </div>
+</div>
+{% block script %}{% endblock %}
+</body>
+</html>

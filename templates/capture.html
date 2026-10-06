@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block step %}② 촬영 진행{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="grow">
+    <div class="card">
+      <img class="view" id="preview" src="{{ url_for('preview_jpg') }}" alt="">
+      <p class="privacy">
+        개인정보: 이 화면은 이 컴퓨터에서만 열립니다(127.0.0.1). 영상이 네트워크나 클라우드로 전송되지 않으며, 기록에는 각도·판정 수치와 연구용 코드만 남습니다. 촬영 자료는 연구 종료 후 삭제합니다.
+      </p>
+    </div>
+  </div>
+
+  <div class="grow" style="flex: 0 0 360px;">
+    <div class="card">
+      <h2>진행 상태</h2>
+      <div class="big" id="phase">준비 중</div>
+      <div class="countdown" id="countdown">–</div>
+      <div class="big" id="take"></div>
+      <p class="hint" id="guide"></p>
+      <button class="ghost" id="cancelBtn"
+              style="width:100%; margin-top:10px; cursor:pointer;">
+        촬영 취소하고 처음으로
+      </button>
+    </div>
+    <div class="card">
+      <h2>이렇게 진행됩니다</h2>
+      <table>
+        <tr><th>1</th><td>숫자가 세어질 동안 자세를 잡습니다</td></tr>
+        <tr><th>2</th><td>테두리가 빨개지면 스윙합니다</td></tr>
+        <tr><th>3</th><td>스윙 뒤에는 그대로 멈춰 있습니다</td></tr>
+        <tr><th>4</th><td>스윙 {{ swings }}번을 반복합니다</td></tr>
+      </table>
+      <p class="hint">
+        스윙 {{ swings }}번의 중앙값으로 한 번 판정합니다.
+        한 번만 재면 스윙마다 자세가 달라 판정이 흔들리기 때문입니다.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+const preview = document.getElementById('preview');
+setInterval(() => { preview.src = '/preview.jpg?t=' + Date.now(); }, 150);
+
+// v3 요청 4번: 음향 신호. 별도 음원 파일 없이 브라우저 기능만 쓴다.
+//   - 카운트다운 숫자가 바뀔 때마다 짧은 알림음 (Web Audio API)
+//   - 카운트다운이 끝나고 녹화가 시작되는 순간 "치세요~" 음성 안내 (TTS)
+let audioCtx = null;
+function beep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.12);
+  } catch (e) { /* 오디오를 지원하지 않으면 조용히 넘어간다 */ }
+}
+function speak(text) {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    u.rate = 1.0;
+    window.speechSynthesis.speak(u);
+  } catch (e) { /* 무시 */ }
+}
+
+// v4 요청 1번: 세션 1회차 촬영 전에만 나오는 사전 안내 음성.
+// 서버가 phase='briefing'으로 기다리고 있다가, 이 발화가 끝났다는 신호
+// (/api/briefing-done)를 받으면 그제서야 기존 8초 카운트다운을 시작한다.
+const BRIEFING_TEXT = {{ briefing_text | tojson }};
+let briefingSpoken = false;
+function speakBriefing() {
+  const ack = () => fetch('/api/briefing-done', {method: 'POST'});
+  try {
+    if (!('speechSynthesis' in window)) { ack(); return; }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(BRIEFING_TEXT);
+    u.lang = 'ko-KR';
+    u.rate = 1.0;
+    u.onend = ack;
+    u.onerror = ack;
+    window.speechSynthesis.speak(u);
+  } catch (e) { ack(); }
+}
+
+let lastCountdown = null;
+let lastPhase = null;
+
+const PHASE_TEXT = {
+  briefing: '안내 음성 재생 중',
+  countdown: '자세를 잡으세요',
+  recording: '스윙하세요!',
+  analyzing: '분석 중입니다',
+  idle: '완료',
+  starting: '카메라 준비 중',
+  error: '카메라 오류',
+};
+const GUIDE_TEXT = {
+  briefing: '프로그램 사용법을 안내해 드려요. 끝나면 자동으로 카운트다운이 시작됩니다.',
+  countdown: '숫자가 0이 되면 촬영이 시작됩니다.',
+  recording: '지금 촬영 중입니다. 스윙 뒤에는 멈춰 계세요.',
+  analyzing: '관절을 찾아 각도를 계산하고 있습니다.',
+};
+
+let started = false;
+let cancelled = false;
+
+document.getElementById('cancelBtn').addEventListener('click', async () => {
+  cancelled = true;
+  await fetch('/api/cancel', {method: 'POST'});
+  window.location.href = '/';
+});
+
+async function poll() {
+  try {
+    const res = await fetch('/api/status');
+    const s = await res.json();
+
+    document.getElementById('phase').textContent =
+      PHASE_TEXT[s.phase] || s.phase;
+    document.getElementById('countdown').textContent =
+      s.countdown !== null && s.countdown !== undefined ? s.countdown : '–';
+    document.getElementById('take').textContent =
+      s.take ? (s.take + ' / ' + s.swings_total + '번째 스윙') : '';
+    document.getElementById('guide').textContent =
+      GUIDE_TEXT[s.phase] || s.message || '';
+
+    if (s.phase === 'briefing' && lastPhase !== 'briefing' && !briefingSpoken) {
+      briefingSpoken = true;
+      speakBriefing();
+    }
+    if (s.phase === 'countdown' && s.countdown !== null
+        && s.countdown !== lastCountdown) {
+      beep();
+    }
+    if (lastPhase === 'countdown' && s.phase === 'recording') {
+      speak('치세요~');
+    }
+    lastCountdown = s.countdown;
+    lastPhase = s.phase;
+
+    if (s.phase !== 'idle') started = true;
+    // 촬영이 끝나 idle로 돌아오고 결과가 생기면 결과 화면으로 넘어간다
+    if (!cancelled && started && s.phase === 'idle') {
+      window.location.href = s.has_result ? '/result' : '/';
+    }
+  } catch (e) { /* 무시 */ }
+}
+poll();
+setInterval(poll, 300);
+</script>
+{% endblock %}

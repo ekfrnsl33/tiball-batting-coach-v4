@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}관리자 — 전체 기록 삭제{% endblock %}
+{% block step %}관리자 전용 (숨겨진 화면){% endblock %}
+
+{% block content %}
+<div class="card" style="border-color:#d9682f; background:#fdf1ea;">
+  <h2 style="color:#d9682f;">⚠ 전체 기록 삭제</h2>
+
+  <p class="hint">
+    이 화면은 <b>개발·테스트 단계에서 쌓인 기록을 정리하기 위한 것</b>입니다.
+    실제 연구에 참여하는 아동의 자료에는 사용하지 않습니다.
+    삭제되면 <b>되돌릴 수 없습니다.</b>
+  </p>
+
+  <p class="hint">
+    지금 이 버전이 쓰는 기록 파일: <b>data/{{ csv_name }}</b>
+    (다른 버전의 기록에는 영향을 주지 않습니다)
+  </p>
+
+  <p class="hint">삭제되는 것:</p>
+  <ul class="hint" style="margin-top:-6px;">
+    <li>세션 기록 CSV 전체 (data/{{ csv_name }})</li>
+    <li>결과 이미지 전체 (data/results/ 안의 모든 학생 폴더)</li>
+    <li>학생별 단계·완벽 횟수·다시연습 횟수 — 목록은 남고 전부 1단계로 초기화됩니다</li>
+  </ul>
+
+  {% if done %}
+    <div class="card" style="background:#eef8f0; border-color:#2e9e5b;">
+      <p class="status s-ok">✓ 삭제를 완료했습니다.</p>
+      <p class="hint">
+        기록 CSV: {{ "삭제됨" if summary.csv_removed else "원래 없었음" }}<br>
+        지운 이미지 파일 수: {{ summary.images_removed }}개<br>
+        레벨을 초기화한 학생: {{ summary.students_reset | join(", ") }}
+      </p>
+      <a class="ghost" href="{{ url_for('prepare') }}">촬영 준비 화면으로</a>
+    </div>
+  {% else %}
+    {% if error %}
+      <p class="err">{{ error }}</p>
+    {% endif %}
+    <form method="post" style="margin-top:10px;">
+      <label for="confirm_text">
+        정말 삭제하려면 아래 칸에 정확히 "<b>{{ confirm_word }}</b>" 라고
+        입력하세요.
+      </label>
+      <input type="text" name="confirm_text" id="confirm_text"
+             autocomplete="off" placeholder="{{ confirm_word }}">
+      <button type="submit" class="start" style="background:#d9682f; margin-top:14px;"
+              onclick="return confirm('정말로 모든 테스트 기록을 삭제할까요? 되돌릴 수 없습니다.');">
+        전체 기록 삭제
+      </button>
+    </form>
+    <p class="hint" style="margin-top:14px;">
+      <a href="{{ url_for('prepare') }}">취소하고 돌아가기</a>
+    </p>
+  {% endif %}
+</div>
+{% endblock %}
