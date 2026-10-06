@@ -11,6 +11,84 @@
 
 ---
 
+## 0. 처음 설치하기 (venv가 없을 때, 최초 1회)
+
+이 저장소에는 `venv/`(파이썬 가상환경) 폴더가 들어있지 않습니다 — 용량이 크고 컴퓨터마다
+새로 만들어야 하는 폴더라 깃허브에는 올리지 않았습니다. **코드를 처음 받으면 아래 과정을
+한 번만 거치면** 되고, 그 이후부터는 "1. 실행하기"부터 그대로 따라 하시면 됩니다.
+
+> 검증 환경: macOS, Apple Silicon(M1/M2 등), Python 3.10, Homebrew 설치됨,
+> Intel RealSense D435i 카메라 연결됨. (Intel 맥에서는 확인되지 않았습니다.)
+
+### 1) 파이썬 가상환경 만들기
+
+```bash
+cd ~/Desktop/tiball-batting-coach-v4   # 이 저장소를 내려받은 폴더
+python3.10 -m venv venv
+```
+
+> `python3.10`을 찾을 수 없다고 나오면 먼저 `brew install python@3.10`으로 설치하세요.
+> 이 프로젝트는 Python 3.10에서 검증되었습니다(MediaPipe 0.10.35 버전 호환성 때문).
+
+### 2) 기본 라이브러리 설치
+
+```bash
+./venv/bin/pip install -r requirements.txt
+```
+
+### 3) pyrealsense2 설치 (카메라 제어 라이브러리 — 소스 빌드 필요)
+
+⚠️ **중요**: `pyrealsense2`는 macOS용 PyPI 패키지가 없어서 `pip install`만으로는 설치되지
+않습니다. 소스를 직접 빌드해야 합니다(최초 1회, 10~20분 정도 걸립니다).
+
+```bash
+# 빌드 도구 설치
+brew install cmake libusb glfw pkgconf
+
+# librealsense 소스 받기 (반드시 이 버전 태그를 써야 합니다)
+cd ~/Desktop   # 저장소 폴더 밖 아무 곳이나 괜찮습니다 (빌드 끝나면 지워도 됨)
+git clone -b v2.58.4 https://github.com/realsenseai/librealsense
+cd librealsense
+mkdir build && cd build
+
+# 빌드 설정 — PYTHON_EXECUTABLE은 반드시 1)에서 만든 venv를 가리켜야 합니다
+cmake .. \
+  -DBUILD_PYTHON_BINDINGS=true \
+  -DPYTHON_EXECUTABLE=$HOME/Desktop/tiball-batting-coach-v4/venv/bin/python \
+  -DFORCE_RSUSB_BACKEND=true \
+  -DBUILD_EXAMPLES=false \
+  -DBUILD_GRAPHICAL_EXAMPLES=false \
+  -DBUILD_UNIT_TESTS=false \
+  -DBUILD_WITH_OPENMP=OFF \
+  -DCHECK_FOR_UPDATES=false \
+  -DCMAKE_CXX_STANDARD=17
+
+# 빌드 (맥 코어 수만큼 병렬로)
+make -j$(sysctl -n hw.ncpu)
+```
+
+빌드가 끝나면 결과물을 venv 안으로 옮기고, 라이브러리를 찾을 수 있게 경로를 추가합니다:
+
+```bash
+SITE_PACKAGES=$HOME/Desktop/tiball-batting-coach-v4/venv/lib/python3.10/site-packages
+cp build/Release/pyrealsense2*.so "$SITE_PACKAGES/"
+cp build/Release/librealsense2*.dylib "$SITE_PACKAGES/"
+install_name_tool -add_rpath @loader_path "$SITE_PACKAGES"/pyrealsense2.cpython-310-darwin.so
+```
+
+마지막으로 잘 설치됐는지 확인합니다:
+
+```bash
+$HOME/Desktop/tiball-batting-coach-v4/venv/bin/python -c "import pyrealsense2; print('OK')"
+```
+
+`OK`가 뜨면 성공입니다.
+
+> 참고: MediaPipe 포즈 랜드마크 모델 파일(`models/pose_landmarker_full.task`)은 이미
+> 저장소에 포함되어 있어 따로 받을 필요가 없습니다.
+
+---
+
 ## 1. 실행하기 — 가장 쉬운 방법
 
 Finder에서 이 저장소를 내려받은 폴더(예: `~/Desktop/tiball-batting-coach-v4`)를 열고
