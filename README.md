@@ -1,16 +1,20 @@
 # 티볼 타격 자세 교정 프로그램 — 사용 안내
 
 초등 티볼 수업에서 학생의 타격 자세(뒷팔꿈치·뒷무릎 각도)를 측정하고 3단계로
-피드백하는 프로그램입니다. 석사학위논문(RPISD 모형 기반 개발연구)의 1차 프로토타입입니다.
+피드백하는 프로그램입니다. 석사학위논문(RPISD 모형 기반 개발연구)의 산출물입니다.
 
-- 요구사항: `티볼_프로그램_요구사항명세서.md`
-- 개발·검증 근거와 실측 수치: `개발_검증기록.md`
+- 저장소: <https://github.com/ekfrnsl33/tiball-batting-coach-v4>
+- 이 README가 설명하는 버전: [v4.0 릴리스](https://github.com/ekfrnsl33/tiball-batting-coach-v4/releases/tag/v4.0)
+
+> 요구사항명세서·개발 검증기록 등 연구 내부 문서와 학생 촬영 기록·이미지는
+> 개인정보 보호를 위해 이 저장소에는 포함하지 않았습니다.
 
 ---
 
 ## 1. 실행하기 — 가장 쉬운 방법
 
-Finder에서 `~/Desktop/tiball_project` 폴더를 열고 **`앱_실행하기.command`를 더블클릭**합니다.
+Finder에서 이 저장소를 내려받은 폴더(예: `~/Desktop/tiball-batting-coach-v4`)를 열고
+**`앱_실행하기.command`를 더블클릭**합니다.
 
 1. 터미널 창이 열리고 **`Password:`** 가 나옵니다 → **맥 로그인 비밀번호**를 입력하고 Enter
    (타이핑해도 화면에 아무것도 안 보이는 것이 정상입니다)
@@ -37,7 +41,7 @@ Finder에서 `~/Desktop/tiball_project` 폴더를 열고 **`앱_실행하기.com
 더블클릭 대신 직접 입력하실 수도 있습니다. `응용 프로그램 → 유틸리티 → 터미널`을 열고:
 
 ```bash
-cd ~/Desktop/tiball_project
+cd ~/Desktop/tiball-batting-coach-v4   # 이 저장소를 내려받은 폴더
 sudo ./venv/bin/python app.py
 ```
 
@@ -106,7 +110,7 @@ sudo ./venv/bin/python app.py
 
 ```
 data/
-├── sessions.csv          판정 기록 (엑셀로 더블클릭하면 열립니다)
+├── sessions_v4.csv       판정 기록 (엑셀로 더블클릭하면 열립니다)
 ├── students.json         학생별 단계·누적 횟수
 └── results/
     ├── 보관안내.txt       보관·삭제 방침
@@ -115,7 +119,7 @@ data/
         └── 20260906_004512_skeleton.png   골격선만 (얼굴 없음)
 ```
 
-- 파일 이름의 숫자가 촬영 일시이고, `sessions.csv`의 촬영 일시와 짝을 이룹니다
+- 파일 이름의 숫자가 촬영 일시이고, `sessions_v4.csv`의 촬영 일시와 짝을 이룹니다
 - 논문에 실을 때는 얼굴을 가린 `_shown.png` 또는 `_skeleton.png`를 씁니다
 - **원본 영상은 저장하지 않습니다.** 프레임은 처리한 뒤 버립니다
 - `test_output/` 폴더는 개발·검증용 산출물입니다. 연구 기록과는 무관합니다
@@ -157,11 +161,11 @@ data/
 | `storage.py` | CSV·JSON 기록, 학생별 폴더, 학생 추가 |
 | `preview_ui.py` | 프레이밍 확인 화면 그리기 |
 | `textdraw.py` | 이미지에 한글 쓰기 |
-| `templates/` | 웹 화면 4개 (기본틀 + 3화면) |
+| `templates/` | 웹 화면 (기본틀 + 사이드 메뉴 4개: 티볼 자세/촬영 준비/결과 확인/결과 해석 방법 + 촬영 진행 화면) |
 
 ### 개발·검증용 파일 (앱 실행에는 필요 없지만 지우지 마세요)
 
-`개발_검증기록.md`의 수치가 이 스크립트들로 나온 것이고, 문제가 생겼을 때 어디가
+논문의 개발·검증 수치가 이 스크립트들로 나온 것이고, 문제가 생겼을 때 어디가
 고장났는지 짚어내는 도구입니다.
 
 | 파일 | 용도 |
@@ -182,7 +186,7 @@ data/
 실행 예:
 
 ```bash
-cd ~/Desktop/tiball_project
+cd ~/Desktop/tiball-batting-coach-v4   # 이 저장소를 내려받은 폴더
 ./venv/bin/python test_judge.py                              # 카메라 불필요
 ./venv/bin/python reanalyze.py test_output/raw_impact.npz --side left
 sudo ./venv/bin/python test_session.py --student S1 --side left
@@ -198,4 +202,4 @@ sudo ./venv/bin/python test_session.py --student S1 --side left
   종료시킵니다. 시스템이 자동으로 되살리는 서비스라 안전하지만, 그 사이 다른
   앱(줌, 페이스타임 등)에서 카메라가 잠시 안 보일 수 있습니다
 - 웹 화면은 **이 컴퓨터에서만** 열립니다(127.0.0.1). 다른 기기에서는 접속되지 않습니다
-- 측정 정확도의 한계는 `개발_검증기록.md` 11절에 정리해 두었습니다
+- 측정 정확도의 한계는 논문 본문에 정리해 두었습니다
